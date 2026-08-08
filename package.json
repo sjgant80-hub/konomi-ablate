@@ -1,0 +1,14 @@
+{
+  "name": "konomi-ablate",
+  "version": "0.1.0",
+  "description": "Leave-one-out ablation for system prompts: delete a clause, test whether the eval actually moved, and cost the dead tokens. Refuses to certify a batch until the joint run is tested.",
+  "type": "module",
+  "main": "ablate.mjs",
+  "exports": { ".": "./ablate.mjs", "./segment": "./segment.mjs", "./cost": "./cost.mjs" },
+  "files": ["segment.mjs", "ablate.mjs", "cost.mjs", "README.md", "LICENSE"],
+  "scripts": { "test": "node test.mjs" },
+  "keywords": ["prompt-engineering", "ablation", "system-prompt", "token-cost", "llm-evaluation", "finops"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/sjgant80-hub/konomi-ablate.git" },
+  "homepage": "https://sjgant80-hub.github.io/konomi-ablate/"
+}

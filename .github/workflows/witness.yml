@@ -1,0 +1,61 @@
+name: witness
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+  workflow_dispatch:
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: test suite
+        run: node test.mjs
+
+      # The axes AND the sign test are vendored from other repos in the suite, which are canonical.
+      # Fetch the real ones and fail on drift — a copied constant that silently diverges is the
+      # failure mode this guards.
+      - name: drift check against konomi-rubric and konomi-regress
+        run: |
+          set -e
+          if curl -fsSL -o /tmp/rubric.mjs https://raw.githubusercontent.com/sjgant80-hub/konomi-rubric/main/rubric.mjs \
+          && curl -fsSL -o /tmp/compare.mjs https://raw.githubusercontent.com/sjgant80-hub/konomi-regress/main/compare.mjs; then
+            node -e "
+              const fs=require('fs');
+              const canonical=[...fs.readFileSync('/tmp/rubric.mjs','utf8').matchAll(/key: '([a-z]+)',\s+name:/g)].map(m=>m[1]);
+              const mine=fs.readFileSync('ablate.mjs','utf8')
+                .match(/export const AXES = Object\.freeze\(\[([^\]]+)\]/)[1]
+                .match(/'([a-z]+)'/g).map(s=>s.replace(/'/g,''));
+              if(JSON.stringify(canonical)!==JSON.stringify(mine)){
+                console.error('AXIS DRIFT\n  canonical:',canonical.join(','),'\n  vendored :',mine.join(','));
+                process.exit(1);
+              }
+              console.log('axes match konomi-rubric:',mine.join(', '));
+            "
+            # the vendored sign test must still agree with the canonical one across the range
+            node --input-type=module -e "
+              import { signTest as mine } from './ablate.mjs';
+              const src = await import('/tmp/compare.mjs').catch(() => null);
+              if (!src) { console.log('::warning::could not import canonical compare.mjs — sign-test drift check skipped'); process.exit(0); }
+              let diff = 0;
+              for (let a = 0; a <= 40; a++) for (let b = 0; b <= 40; b++) {
+                const x = mine(a, b), y = src.signTest(a, b);
+                if (x.p !== y.p || x.n !== y.n || x.exact !== y.exact) diff++;
+              }
+              if (diff) { console.error(diff + ' sign-test results diverged from konomi-regress'); process.exit(1); }
+              console.log('sign test matches konomi-regress across 1681 pairs');
+            "
+          else
+            echo "::warning::could not reach the canonical repos — drift check skipped, not failed"
+          fi
+
+      # v0.2, not v0.1: reviewed-equivalent baselines were added after v0.1 was tagged.
+      # Cap must exceed each file's mutant count or "clean" is a truncation artifact (highest here: 49).
+      - name: mutation gate
+        uses: sjgant80-hub/witness@v0.2
+        with:
+          files: 'segment.mjs ablate.mjs cost.mjs'
+          test-command: 'node test.mjs'
+          cap: '400'

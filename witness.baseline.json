@@ -1,0 +1,37 @@
+[
+  {
+    "mutation": "> → >=",
+    "snippet": "if (p > 1) p = 1;",
+    "reason": "ablate.mjs:51 — Differs only when p is exactly 1, where the assignment p = 1 is idempotent."
+  },
+  {
+    "mutation": "> → >=",
+    "snippet": "reasons.push(`removing it moved ${movedProtected.map(a => `${a.axis} ${a.delta > 0 ? '+' :",
+    "reason": "ablate.mjs:152 — This map runs only over movedProtected, which is filtered on delta !== 0, so the delta is never zero here and the sign prefix cannot differ."
+  },
+  {
+    "mutation": "< → <=",
+    "snippet": "for (let i = 0; i < n; i++) {",
+    "reason": "ablate.mjs:112 — This is the per-axis loop. At i === n both base[i] and variant[i] are undefined, axisOf returns null for a non-array, and the null guard on the next line skips the iteration — delta and seen are unchanged."
+  },
+  {
+    "mutation": ">= → >",
+    "snippet": "const fmt = n => (n >= 1 ? `£${n.toLocaleString()}` : `£${n}`);",
+    "reason": "cost.mjs:97 — roundMoney is continuous at 1: toLocaleString() and template interpolation both render 1 as \"1\". Verified over 200,000 values with zero divergence."
+  },
+  {
+    "mutation": "< → <=",
+    "snippet": "if (n < 1) return Math.round(n * 100) / 100;",
+    "reason": "cost.mjs:70 — roundMoney is continuous at its 1 breakpoint — both branches return the same value there. Verified over 200,000 values with zero divergence."
+  },
+  {
+    "mutation": "< → <=",
+    "snippet": "if (n < 10) return Math.round(n * 10) / 10;",
+    "reason": "cost.mjs:71 — roundMoney is continuous at its 10 breakpoint — both branches return 10. Verified over 200,000 values with zero divergence."
+  },
+  {
+    "mutation": "< → <=",
+    "snippet": "if (n < 1000) return Math.round(n);",
+    "reason": "cost.mjs:72 — roundMoney is continuous at its 1000 breakpoint — both branches return 1000. Verified over 200,000 values with zero divergence."
+  }
+]
